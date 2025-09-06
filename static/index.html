@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Email Assistant</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 20px; }
+    h1 { color: #333; }
+    table { border-collapse: collapse; width: 100%; margin-top: 20px; }
+    th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+    th { background: #f4f4f4; }
+    button { margin: 10px 0; padding: 8px 12px; cursor: pointer; }
+  </style>
+</head>
+<body>
+  <h1>📧 Hackathon Email Assistant</h1>
+  <button onclick="loadEmails()">Load Emails</button>
+  <button onclick="triageEmails()">Triage Emails</button>
+
+  <table id="emailTable">
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>Sender</th>
+        <th>Subject</th>
+        <th>Priority</th>
+        <th>Sentiment</th>
+        <th>Status</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+<div>
+  <label>Filter Priority:</label>
+  <select id="priorityFilter">
+    <option value="">All</option>
+    <option value="urgent">Urgent</option>
+    <option value="not_urgent">Not Urgent</option>
+  </select>
+
+  <label>Filter Sentiment:</label>
+  <select id="sentimentFilter">
+    <option value="">All</option>
+    <option value="positive">Positive</option>
+    <option value="negative">Negative</option>
+  </select>
+  <button onclick="applyFilters()">Apply</button>
+</div>
+
+<table id="emailTable">
+  <!-- filled dynamically -->
+</table>
+
+  <script>
+    async function loadEmails() {
+      const res = await fetch("http://127.0.0.1:8000/emails");
+      const data = await res.json();
+      renderTable(data);
+    }
+
+    async function triageEmails() {
+      const res = await fetch("http://127.0.0.1:8000/triage");
+      const data = await res.json();
+      alert("Triage completed! Reloading emails...");
+      loadEmails();
+    }
+
+    function renderTable(emails) {
+      const tbody = document.querySelector("#emailTable tbody");
+      tbody.innerHTML = "";
+      emails.forEach(e => {
+        const row = `<tr>
+          <td>${e.id}</td>
+          <td>${e.sender}</td>
+          <td>${e.subject}</td>
+          <td>${e.priority || "-"}</td>
+          <td>${e.sentiment || "-"}</td>
+          <td>${e.status || "-"}</td>
+        </tr>`;
+        tbody.innerHTML += row;
+      });
+    }
+
+async function applyFilters() {
+  const priority = document.getElementById("priorityFilter").value;
+  const sentiment = document.getElementById("sentimentFilter").value;
+  let url = `/emails/filter?`;
+  if (priority) url += `priority=${priority}&`;
+  if (sentiment) url += `sentiment=${sentiment}`;
+  const res = await fetch(url);
+  const emails = await res.json();
+  renderEmails(emails);
+}
+
+async function resolveEmail(id) {
+  await fetch(`/emails/${id}/resolve`, { method: "POST" });
+  loadEmails();
+}
+
+async function suggestReply(id) {
+  const res = await fetch(`/emails/${id}/suggest-reply`);
+  const data = await res.json();
+  alert("Suggested Reply:\n" + data.suggested_reply);
+}
+
+  </script>
+</body>
+</html>
